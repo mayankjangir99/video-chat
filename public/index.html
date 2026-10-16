@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Friends Video Chat</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">◉ <span>FriendRoom</span></a>
+    <div class="status"><span id="connectionDot" class="dot"></span><span id="connectionStatus">Not connected</span></div>
+  </header>
+
+  <main>
+    <section id="welcome" class="welcome panel">
+      <div class="eyebrow">PRIVATE ROOMS · NO ACCOUNT NEEDED</div>
+      <h1>Good conversations<br><span>start with a link.</span></h1>
+      <p class="muted">Create a room, invite friends, and talk face-to-face. Your browser will ask before using your camera or microphone.</p>
+      <form id="joinForm">
+        <label for="displayName">Your display name</label>
+        <input id="displayName" maxlength="32" placeholder="e.g. Alex" autocomplete="nickname">
+        <label for="roomInput">Room code <span class="optional">(optional)</span></label>
+        <input id="roomInput" maxlength="80" placeholder="Enter a friend's room code">
+        <button class="primary" type="submit">Join / Create room</button>
+      </form>
+      <p class="tiny">Anyone with the room link may be able to join. Only share it with people you trust.</p>
+    </section>
+
+    <section id="call" class="call-layout hidden">
+      <div class="main-column">
+        <div class="room-heading panel">
+          <div><div class="eyebrow">YOUR ROOM</div><h2 id="roomTitle">Room</h2><p class="muted small"><span id="roomCount">1</span> participant(s) · Up to 6 in this starter</p></div>
+          <button id="copyInvite" class="secondary">Copy invite link</button>
+        </div>
+        <div id="videoGrid" class="video-grid">
+          <div class="video-tile local-tile" id="localTile">
+            <video id="localVideo" autoplay playsinline muted></video>
+            <div class="video-label" id="localLabel">You</div>
+          </div>
+        </div>
+        <div class="controls panel">
+          <button id="toggleMic" class="control">🎙️ <span>Mute</span></button>
+          <button id="toggleCamera" class="control">📷 <span>Camera off</span></button>
+          <button id="leaveCall" class="danger">Leave room</button>
+        </div>
+        <p class="tiny center">Use a modern browser and allow camera/microphone access. HTTPS is required outside localhost.</p>
+      </div>
+      <aside class="chat panel">
+        <div class="chat-head"><div><h3>Room chat</h3><p class="muted small">Messages are relayed to this room.</p></div></div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="chatForm" class="chat-form">
+          <input id="chatInput" maxlength="500" placeholder="Write a message…" autocomplete="off" aria-label="Chat message">
+          <button class="primary send" type="submit" aria-label="Send message">➤</button>
+        </form>
+      </aside>
+    </section>
+    <div id="toast" class="toast hidden" role="status"></div>
+  </main>
+  <footer>FriendRoom starter · Don’t share sensitive information in chat.</footer>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
