@@ -112,12 +112,28 @@ function createPeerConnection(peerId, peerName, shouldOffer) {
 
   pc = new RTCPeerConnection(rtcConfig);
   peers.set(peerId, pc);
+  pc.oniceconnectionstatechange = () => {
+  console.log("ICE state:", peerId, pc.iceConnectionState);
+};
+
+pc.onconnectionstatechange = () => {
+  console.log("Peer connection:", peerId, pc.connectionState);
+};
+
+pc.onsignalingstatechange = () => {
+  console.log("Signaling state:", peerId, pc.signalingState);
+};
+
+pc.onicecandidateerror = (event) => {
+  console.error("ICE candidate error:", event);
+};
 
   if (localStream) {
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
   }
 
   pc.ontrack = async (event) => {
+    console.log("REMOTE TRACK RECEIVED:", event.track.kind);
     const remoteVideo = createRemoteTile(peerId, peerName);
     if (event.streams && event.streams[0]) {
       remoteVideo.srcObject = event.streams[0];
