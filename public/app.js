@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("https://video-chat-stxw.onrender.com");
 const $ = (id) => document.getElementById(id);
 
 const welcome = $("welcome");
