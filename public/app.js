@@ -20,11 +20,12 @@ let micOn = true;
 let cameraOn = true;
 const peers = new Map();
 const remoteTiles = new Map();
+const pendingIceCandidates = new Map();
 
 const rtcConfig = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" }
-    // For reliable connections across restrictive networks, configure a TURN server.
+    // IMPORTANT: add TURN credentials from your provider for networks where STUN alone fails.
   ]
 };
 
@@ -96,6 +97,7 @@ function removePeer(id) {
     pc.close();
     peers.delete(id);
   }
+  pendingIceCandidates.delete(id);
   const video = remoteTiles.get(id);
   if (video) {
     video.srcObject = null;
@@ -115,9 +117,16 @@ function createPeerConnection(peerId, peerName, shouldOffer) {
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
   }
 
-  pc.ontrack = (event) => {
+  pc.ontrack = async (event) => {
     const remoteVideo = createRemoteTile(peerId, peerName);
-    if (event.streams && event.streams[0]) remoteVideo.srcObject = event.streams[0];
+    if (event.streams && event.streams[0]) {
+      remoteVideo.srcObject = event.streams[0];
+      try {
+        await remoteVideo.play();
+      } catch (err) {
+        console.warn("Remote video autoplay was blocked; user may need to interact with the page.", err);
+      }
+    }
   };
 
   pc.onicecandidate = (event) => {
@@ -274,6 +283,7 @@ socket.on("webrtc-offer", async ({ from, offer }) => {
   try {
     const pc = createPeerConnection(from, "Friend", false);
     await pc.setRemoteDescription(new RTCSessionDescription(offer));
+    await flushPendingIceCandidates(from, pc);
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     socket.emit("webrtc-answer", { to: from, answer });
@@ -287,20 +297,39 @@ socket.on("webrtc-answer", async ({ from, answer }) => {
   if (!pc) return;
   try {
     await pc.setRemoteDescription(new RTCSessionDescription(answer));
+    await flushPendingIceCandidates(from, pc);
   } catch (err) {
     console.error("Could not process answer:", err);
   }
 });
 
 socket.on("webrtc-ice-candidate", async ({ from, candidate }) => {
+  if (!candidate) return;
   const pc = peers.get(from);
-  if (!pc || !candidate) return;
+  if (!pc || !pc.remoteDescription || !pc.remoteDescription.type) {
+    const queued = pendingIceCandidates.get(from) || [];
+    queued.push(candidate);
+    pendingIceCandidates.set(from, queued);
+    return;
+  }
   try {
     await pc.addIceCandidate(new RTCIceCandidate(candidate));
   } catch (err) {
     console.error("Could not add ICE candidate:", err);
   }
 });
+
+async function flushPendingIceCandidates(peerId, pc) {
+  const queued = pendingIceCandidates.get(peerId) || [];
+  pendingIceCandidates.delete(peerId);
+  for (const candidate of queued) {
+    try {
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.error("Could not add queued ICE candidate:", err);
+    }
+  }
+}
 
 socket.on("chat-message", addChatMessage);
 
